@@ -1,5 +1,6 @@
 # PowerShell 3D Engine 💎
 ![G](https://github.com/jh1sc/PowerShell-3D-Engine/blob/main/Updated%20Engines/Exmpl/title.png)
+- `title.obj`
 ![](https://img.shields.io/badge/3D_ENGINE-_Made_By_Jh1sc-blue?style=for-the-badge)
 
 # Setup 🌋
@@ -56,3 +57,4 @@ The script sorts faces based on their dot product with a given normal vector. Th
 - If You dont see you obj file, scale the model, its that simple!
 
 ![G](https://github.com/jh1sc/PowerShell-3D-Engine/blob/main/Updated%20Engines/Exmpl/Demonstration1.gif "Why U Lookin")
+- `axis.obj`
