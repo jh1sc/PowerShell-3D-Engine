@@ -1,13 +1,13 @@
 Add-Type -AssemblyName  Microsoft.VisualBasic, PresentationCore, PresentationFramework, System.Drawing, System.Windows.Forms, WindowsBase, WindowsFormsIntegration, System;
-[int]$nScreenWidth = 240
-[int]$nScreenHeight = 124
-[string[]]$screen = @(" " * $nScreenWidth) * $nScreenHeight
 iwr -Uri "https://raw.githubusercontent.com/jh1sc/Powershell-SetFont/main/SetFont.psm1" -OutFile SetFont.psm1; ipmo .\SetFont.psm1
 $sig = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'; Add-Type -MemberDefinition $sig -name NativeMethods -namespace Win32
 (Get-Process Powershell).MainWindowHandle | ForEach-Object { [Win32.NativeMethods]::ShowWindowAsync($_, 3) } | out-null
 $host.UI.RawUI.ForegroundColor = "White"
 $host.UI.RawUI.BackgroundColor = "Black"
 SetFontAsp 0 8 8 48 400 Terminal
+[int]$nScreenWidth = 240;[int]$nScreenHeight = 123
+$host.UI.RawUI.WindowSize = [Management.Automation.Host.Size]::new(($nScreenWidth),($nScreenHeight))
+$host.UI.RawUI.BufferSize = [Management.Automation.Host.Size]::new(($nScreenWidth),($nScreenHeight))
 
 $script:Vertexs = @(); $script:Faces = @()
 function LFF ($scale) {
@@ -64,7 +64,7 @@ function Toggle($value) {
         }
     }
 }
-
+[string[]]$screen = @(" " * $nScreenWidth) * $nScreenHeight
 $script:scale = 10
 LFF $script:scale
 $LP = [pscustomobject]@{x = -40; y = -40; z = -40 }
