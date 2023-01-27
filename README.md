@@ -14,4 +14,5 @@
 - Go to this website (https://fabconvert.com/convert/glb/to/obj#google_vignette) and upload and download the obj file
 - extract it from zip, then load it to the renderer!
 
-![](https://giphy.com/gifs/kgB5cg9qgTdTNh9S1A)
+
+![alt text](https://github.com/jh1sc/PowerShell-3D-Engine/blob/main/Updated%20Engines/Exmpl/Demonstration1.gif "Logo Title Text 1")
