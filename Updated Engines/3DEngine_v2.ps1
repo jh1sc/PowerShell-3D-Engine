@@ -1,14 +1,140 @@
 Add-Type -AssemblyName  Microsoft.VisualBasic, PresentationCore, PresentationFramework, System.Drawing, System.Windows.Forms, WindowsBase, WindowsFormsIntegration, System;
-iwr -Uri "https://raw.githubusercontent.com/jh1sc/Powershell-SetFont/main/SetFont.psm1" -OutFile SetFont.psm1; ipmo .\SetFont.psm1
 $sig = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'; Add-Type -MemberDefinition $sig -name NativeMethods -namespace Win32
 (Get-Process Powershell).MainWindowHandle | ForEach-Object { [Win32.NativeMethods]::ShowWindowAsync($_, 3) } | out-null
-$host.UI.RawUI.ForegroundColor = "White"
-$host.UI.RawUI.BackgroundColor = "Black"
-SetFontAsp 0 8 8 48 400 Terminal
-[int]$nScreenWidth = 240;[int]$nScreenHeight = 123
-$host.UI.RawUI.WindowSize = [Management.Automation.Host.Size]::new(($nScreenWidth),($nScreenHeight))
-$host.UI.RawUI.BufferSize = [Management.Automation.Host.Size]::new(($nScreenWidth),($nScreenHeight))
+$host.UI.RawUI.ForegroundColor = "White";$host.UI.RawUI.BackgroundColor = "Black"
+if (-not ("Windows.Native.Kernel32" -as [type])) {
+    Add-Type -TypeDefinition @"
+    namespace Windows.Native
+    {
+      using System;
+      using System.ComponentModel;
+      using System.IO;
+      using System.Runtime.InteropServices;
+      public class Kernel32
+      {
+        public const uint FILE_SHARE_READ = 1;
+        public const uint FILE_SHARE_WRITE = 2;
+        public const uint GENERIC_READ = 0x80000000;
+        public const uint GENERIC_WRITE = 0x40000000;
+        public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+        public const int STD_ERROR_HANDLE = -12;
+        public const int STD_INPUT_HANDLE = -10;
+        public const int STD_OUTPUT_HANDLE = -11;
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public class CONSOLE_FONT_INFOEX
+        {
+          private int cbSize;
+          public CONSOLE_FONT_INFOEX()
+          {
+            this.cbSize = Marshal.SizeOf(typeof(CONSOLE_FONT_INFOEX));
+          }
+          public int FontIndex;
+          public short FontWidth;
+          public short FontHeight;
+          public int FontFamily;
+          public int FontWeight;
+          [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+          public string FaceName;
+        }
+        public class Handles
+        {
+          public static readonly IntPtr StdIn = GetStdHandle(STD_INPUT_HANDLE);
+          public static readonly IntPtr StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+          public static readonly IntPtr StdErr = GetStdHandle(STD_ERROR_HANDLE);
+        }
+        [DllImport("kernel32.dll", SetLastError=true)]
+        public static extern bool CloseHandle(IntPtr hHandle);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr CreateFile
+          (
+          [MarshalAs(UnmanagedType.LPTStr)] string filename,
+          uint access,
+          uint share,
+          IntPtr securityAttributes, 
+          [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
+          uint flagsAndAttributes,
+          IntPtr templateFile
+          );
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+        public static extern bool GetCurrentConsoleFontEx
+          (
+          IntPtr hConsoleOutput, 
+          bool bMaximumWindow, 
+          [In, Out] CONSOLE_FONT_INFOEX lpConsoleCurrentFont
+          );
+        [DllImport("kernel32.dll", SetLastError=true)]
+        public static extern IntPtr GetStdHandle(int nStdHandle);
+        [DllImport("kernel32.dll", SetLastError=true)]
+        public static extern bool SetCurrentConsoleFontEx
+          (
+          IntPtr ConsoleOutput, 
+          bool MaximumWindow,
+          [In, Out] CONSOLE_FONT_INFOEX ConsoleCurrentFontEx
+          );
+        public static IntPtr CreateFile(string fileName, uint fileAccess, 
+          uint fileShare, FileMode creationDisposition)
+        {
+          IntPtr hFile = CreateFile(fileName, fileAccess, fileShare, IntPtr.Zero, 
+            creationDisposition, 0U, IntPtr.Zero);
+          if (hFile == INVALID_HANDLE_VALUE)
+          {
+            throw new Win32Exception();
+          }
+          return hFile;
+        }
+        public static CONSOLE_FONT_INFOEX GetCurrentConsoleFontEx()
+        {
+          IntPtr hFile = IntPtr.Zero;
+          try
+          {
+            hFile = CreateFile("CONOUT$", GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE, FileMode.Open);
+            return GetCurrentConsoleFontEx(hFile);
+          }
+          finally
+          {
+            CloseHandle(hFile);
+          }
+        }
+        public static void SetCurrentConsoleFontEx(CONSOLE_FONT_INFOEX cfi)
+        {
+          IntPtr hFile = IntPtr.Zero;
+          try
+          {
+            hFile = CreateFile("CONOUT$", GENERIC_READ | GENERIC_WRITE,
+              FILE_SHARE_READ | FILE_SHARE_WRITE, FileMode.Open);
+            SetCurrentConsoleFontEx(hFile, false, cfi);
+          }
+          finally
+          {
+            CloseHandle(hFile);
+          }
+        }
+        public static CONSOLE_FONT_INFOEX GetCurrentConsoleFontEx
+          (
+          IntPtr outputHandle
+          )
+        {
+          CONSOLE_FONT_INFOEX cfi = new CONSOLE_FONT_INFOEX();
+          if (!GetCurrentConsoleFontEx(outputHandle, false, cfi))
+          {
+            throw new Win32Exception();
+          }
 
+          return cfi;
+        }
+      }
+    }
+"@
+}
+$FontAspects = [Windows.Native.Kernel32]::GetCurrentConsoleFontEx()
+$FontAspects.FontIndex = 0;$FontAspects.FontWidth = 8
+$FontAspects.FontHeight = 8;$FontAspects.FontFamily = 48
+$FontAspects.FontWeight = 400;$FontAspects.FaceName = "Terminal"
+[Windows.Native.Kernel32]::SetCurrentConsoleFontEx($FontAspects)
+[int]$nScreenWidth = 240; [int]$nScreenHeight = 123
+$host.UI.RawUI.WindowSize = [Management.Automation.Host.Size]::new(($nScreenWidth), ($nScreenHeight))
+$host.UI.RawUI.BufferSize = [Management.Automation.Host.Size]::new(($nScreenWidth), ($nScreenHeight))
 $script:Vertexs = @(); $script:Faces = @()
 function LFF ($scale) {
     $script:Vertexs = @(); $script:Faces = @()
@@ -71,7 +197,7 @@ $LP = [pscustomobject]@{x = -40; y = -40; z = -40 }
 $Cam = [pscustomobject]@{x = 0; y = 0; z = -80 }
 $LI = 1.9
 $Fov = 80
-$TriAccr = 0.9
+$TriAccr = 0.99
 $ShadeIndex = "MQW#BNqpHERmKdgAGbX8@SDOPUkwZyF69heT0a&xV%Cs4fY52Lonz3ucJjvItr}{li?1][7<>=)(+*|!/\;:-,_~^.'"
 $refr = @(" " * $nScreenWidth) * $nScreenHeight
 $theta = 0.09; $cosTheta = [System.Math]::Cos($theta); $sinTheta = [System.Math]::Sin($theta)
@@ -114,18 +240,15 @@ while ($true) {
     if (ASKS("D")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $x = $Vertexs[$j].x; $z = $Vertexs[$j].z; $Vertexs[$j].x = $x * $cosTheta - $z * $sinTheta; $Vertexs[$j].z = $z * $cosTheta + $x * $sinTheta } }
     if (ASKS("Q")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $x = $Vertexs[$j].x; $y = $Vertexs[$j].y; $Vertexs[$j].x = $x * $cosTheta - $y * $sinTheta; $Vertexs[$j].y = $x * $sinTheta + $y * $cosTheta } }
     if (ASKS("E")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $x = $Vertexs[$j].x; $y = $Vertexs[$j].y; $Vertexs[$j].x = $x * $cosTheta + $y * $sinTheta; $Vertexs[$j].y = $y * $cosTheta - $x * $sinTheta } }
-
     if (ASKS("Up")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $Vertexs[$j].y -= 1 } }
     if (ASKS("Down")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $Vertexs[$j].y += 1 } }
-
     if (ASKS("Left")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $Vertexs[$j].x -= 1 } }
     if (ASKS("Right")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $Vertexs[$j].x += 1 } }
-
-
-
     if (ASKS("Z")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $Vertexs[$j].x *= 1.1; $Vertexs[$j].y *= 1.1; $Vertexs[$j].z *= 1.1 } $script:scale *= 1.1 }
     if (ASKS("X")) { for ($j = 0; $j -lt $Vertexs.Length; $j++) { $Vertexs[$j].x *= 0.9; $Vertexs[$j].y *= 0.9; $Vertexs[$j].z *= 0.9 }  $script:scale *= 0.9 }
     if (ASKS("T")) { if ($toggle -gt "3") { $toggle = 0 }$toggle += 0.2; Toggle $toggle }
+
+
     for ($t = 0; $t -lt $Faces.length; $t++) {
         $x1 = $Vertexs[$Faces[$t].v1].x; $y1 = $Vertexs[$Faces[$t].v1].y; $z1 = $Vertexs[$Faces[$t].v1].z
         $x2 = $Vertexs[$Faces[$t].v2].x; $y2 = $Vertexs[$Faces[$t].v2].y; $z2 = $Vertexs[$Faces[$t].v2].z
