@@ -1,6 +1,11 @@
 # PowerShell 3D Engine 💎
 ![](https://img.shields.io/badge/3D_ENGINE-_Made_By_Jh1sc-blue?style=for-the-badge)
 
+# Setup 🌋
+![G](https://github.com/jh1sc/PowerShell-3D-Engine/blob/main/Updated%20Engines/Exmpl/settings.png)
+- Make sure your display setting look like this otherwise it will not work properly.
+
+
 
 # Description 📶
 This 3D Ascii Graphics engine is a beast. 
